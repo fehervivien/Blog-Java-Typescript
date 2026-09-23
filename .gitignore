@@ -1,0 +1,53 @@
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+.kotlin
+
+### IntelliJ IDEA ###
+.idea/modules.xml
+.idea/jarRepositories.xml
+.idea/compiler.xml
+.idea/libraries/
+*.iws
+*.iml
+*.ipr
+
+### Eclipse ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### Mac OS ###
+.DS_Store
+# Project exclude paths
+/frontend/node_modules/
+/frontend/node_modules/@types/estree/LICENSE
+/frontend/node_modules/@types/estree/README.md
+/frontend/node_modules/esbuild/
+/frontend/node_modules/esbuild/lib/main.js
+/frontend/node_modules/nanoid/
+/frontend/node_modules/nanoid/non-secure/index.cjs
+/frontend/node_modules/nanoid/non-secure/index.js
+/frontend/node_modules/picocolors/
+/frontend/node_modules/postcss/
+/frontend/node_modules/rollup/
+/frontend/node_modules/source-map-js/
+/frontend/node_modules/vite/
