@@ -1,13 +1,17 @@
 package org.example.controller;
 
+
 import org.example.model.CreatePostRequest;
 import org.example.model.Post;
 import org.example.service.PostService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import java.security.Principal;
 import java.util.List;
+import java.util.Map;
+
+
 
 @RestController
 @RequestMapping("/api/posts")
@@ -32,22 +36,52 @@ public class PostController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PostMapping
-    public ResponseEntity<Post> create(@RequestBody CreatePostRequest req) {
-        Post created = postService.createPost(req);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
-    }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        boolean removed = postService.deletePost(id);
-        return removed ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+    @PostMapping
+    public ResponseEntity<?> create(@RequestBody CreatePostRequest req, Principal principal) {
+        try {
+            Post created = postService.createPost(req, principal.getName());
+            return ResponseEntity.status(HttpStatus.CREATED).body(created);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Post> update(@PathVariable Long id, @RequestBody CreatePostRequest req) {
-        return postService.updatePost(id, req)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> update(
+            @PathVariable Long id,
+            @RequestBody CreatePostRequest req,
+            java.security.Principal principal
+    ) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Bejelentkezés szükséges!"));
+        }
+        try {
+            // A principal.getName() adja vissza a JWT-ből kinyert felhasználónevet
+            Post updated = postService.updatePost(id, req, principal.getName());
+            return ResponseEntity.ok(updated);
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> delete(
+            @PathVariable Long id,
+            java.security.Principal principal
+    ) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Bejelentkezés szükséges!"));
+        }
+        try {
+            postService.deletePost(id, principal.getName());
+            return ResponseEntity.noContent().build();
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }

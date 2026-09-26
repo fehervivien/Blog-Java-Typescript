@@ -1,8 +1,11 @@
 package org.example.service;
 
+
 import org.example.model.CreatePostRequest;
 import org.example.model.Post;
+import org.example.model.User;
 import org.example.repository.PostRepository;
+import org.example.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -14,9 +17,11 @@ import java.util.Optional;
 public class PostService {
 
     private final PostRepository postRepository;
+    private final UserRepository userRepository;
 
-    public PostService(PostRepository postRepository) {
+    public PostService(PostRepository postRepository, UserRepository userRepository) {
         this.postRepository = postRepository;
+        this.userRepository = userRepository;
     }
 
     public List<Post> getAllPosts() {
@@ -27,32 +32,48 @@ public class PostService {
         return postRepository.findById(id);
     }
 
-    public Post createPost(CreatePostRequest req) {
+    public Post createPost(CreatePostRequest req, String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new SecurityException("Csak regisztrált felhasználó hozhat létre bejegyzést!"));
+
         Post post = new Post(
                 req.title(),
                 req.content(),
-                req.author() == null || req.author().isBlank() ? "Névtelen" : req.author(),
+                user.getDisplayName(),
                 LocalDateTime.now()
         );
         return postRepository.save(post);
     }
 
-    public boolean deletePost(Long id) {
-        if (postRepository.existsById(id)) {
-            postRepository.deleteById(id);
-            return true;
+    public Post updatePost(Long id, CreatePostRequest req, String username) {
+        Post existing = postRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("A bejegyzés nem található!"));
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new SecurityException("Nincs jogosultságod: regisztráció szükséges!"));
+
+        // Ellenőrzés: a szerkesztő azonos-e a cikk szerzőjével
+        if (!existing.getAuthor().equals(user.getDisplayName()) && !existing.getAuthor().equals(user.getUsername())) {
+            throw new SecurityException("Csak a saját bejegyzésedet szerkesztheted!");
         }
-        return false;
+
+        existing.setTitle(req.title());
+        existing.setContent(req.content());
+        return postRepository.save(existing);
     }
 
-    public Optional<Post> updatePost(Long id, CreatePostRequest req) {
-        return postRepository.findById(id).map(existingPost -> {
-            existingPost.setTitle(req.title());
-            existingPost.setContent(req.content());
-            if (req.author() != null && !req.author().isBlank()) {
-                existingPost.setAuthor(req.author());
-            }
-            return postRepository.save(existingPost);
-        });
+    public void deletePost(Long id, String username) {
+        Post existing = postRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("A bejegyzés nem található!"));
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new SecurityException("Nincs jogosultságod: regisztráció szükséges!"));
+
+        // Ellenőrzés: a törlő azonos-e a cikk szerzőjével
+        if (!existing.getAuthor().equals(user.getDisplayName()) && !existing.getAuthor().equals(user.getUsername())) {
+            throw new SecurityException("Csak a saját bejegyzésedet törölheted!");
+        }
+
+        postRepository.deleteById(id);
     }
 }
